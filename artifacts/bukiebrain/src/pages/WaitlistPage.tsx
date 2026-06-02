@@ -223,7 +223,7 @@ function Reveal({ children, delay = 0, className = "", id }: {
 function Logo({ height = "h-8" }: { height?: string }) {
   return (
     <span className="inline-flex items-center bg-white rounded-lg px-2 py-0.5">
-      <img src={logoSrc} alt="BukieBrain" className={`${height} w-auto object-contain`} />
+      <img src={logoSrc} alt="BukieBrain" className={`${height} w-auto object-contain`} decoding="async" />
     </span>
   );
 }

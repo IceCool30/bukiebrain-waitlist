@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "BukieBrain Waitlist"
+version = "1.0.0"
+id = "artifacts/bukiebrain"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21526
+
+[services.development]
+run = "pnpm --filter @workspace/bukiebrain run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/bukiebrain", "run", "build" ]
+publicDir = "artifacts/bukiebrain/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21526"
+BASE_PATH = "/"

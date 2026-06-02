@@ -21,6 +21,8 @@ export interface WaitlistEntry {
   portfolio?: string;
   help_needed?: string;
   budget?: string;
+  referral_code?: string;
+  referred_by?: string;
   created_at?: string;
 }
 

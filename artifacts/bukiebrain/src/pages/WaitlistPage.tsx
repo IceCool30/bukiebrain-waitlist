@@ -6,8 +6,9 @@ import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
   BadgeCheck, Globe, Smartphone, UserCircle, Briefcase, Lock,
   CheckCircle, GraduationCap, MapPin, Link as LinkIcon,
-  HelpCircle, Coins, ChevronDown, Sun, Moon, Star, Share2,
+  HelpCircle, Coins, ChevronDown, Sun, Moon, Star, Share2, Copy, Check, Gift,
 } from "lucide-react";
+
 import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from "@/components/ui/form";
@@ -21,6 +22,15 @@ import avatarFemale from "@/avatar-female.jpg";
 // ── Brand tokens ──────────────────────────────────────────
 const NAVY  = "#0B1D3D";
 const GREEN = "#0D3B2E";
+
+// ── Referral helpers ──────────────────────────────────────
+function generateCode(): string {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+function getReferralLink(code: string): string {
+  const base = window.location.origin + window.location.pathname;
+  return `${base}?ref=${code}`;
+}
 
 // ── Data ─────────────────────────────────────────────────
 const LAUNCH_DATE = new Date("2027-01-20T00:00:00+01:00");
@@ -305,6 +315,10 @@ export default function WaitlistPage() {
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [isSaving,       setIsSaving]       = useState(false);
   const [saveError,      setSaveError]      = useState<string | null>(null);
+  const [myRefCode,      setMyRefCode]      = useState<string>("");
+  const [refCount,       setRefCount]       = useState<number>(0);
+  const [copied,         setCopied]         = useState(false);
+  const [inboundRef,     setInboundRef]     = useState<string>("");
   const [cookieConsent,  setCookieConsent]  = useState<"accepted" | "declined" | null>(() => {
     const v = localStorage.getItem("bukiebrain-cookie-consent");
     return (v === "accepted" || v === "declined") ? v : null;
@@ -365,6 +379,12 @@ export default function WaitlistPage() {
     return () => { document.body.style.overflow = ""; };
   }, [overlayOpen]);
 
+  // Read inbound referral code from URL
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) setInboundRef(ref.toUpperCase());
+  }, []);
+
   const scrollTo  = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   const showToast = (msg?: string) => {
     if (msg) setToastMsg(msg);
@@ -401,6 +421,7 @@ export default function WaitlistPage() {
   async function onSubmit(v: FormValues) {
     setIsSaving(true);
     setSaveError(null);
+    const code = generateCode();
     const { error } = await supabase.from("waitlist").insert({
       full_name:        v.fullName,
       phone:            v.phone,
@@ -414,9 +435,18 @@ export default function WaitlistPage() {
       portfolio:        v.portfolio   || undefined,
       help_needed:      v.helpNeeded  || undefined,
       budget:           v.budget      || undefined,
+      referral_code:    code,
+      referred_by:      inboundRef || undefined,
     });
     setIsSaving(false);
     if (error) { setSaveError("Something went wrong. Please try again."); return; }
+    setMyRefCode(code);
+    // Fetch how many people this code has already referred (will be 0 for new signup)
+    const { count } = await supabase
+      .from("waitlist")
+      .select("*", { count: "exact", head: true })
+      .eq("referred_by", code);
+    setRefCount(count ?? 0);
     setSubmittedRole(v.role);
     setSubmitted(true);
     showToast();
@@ -716,7 +746,7 @@ export default function WaitlistPage() {
                 <div className="bg-white dark:bg-[#102348] border border-black/[0.05] dark:border-white/[0.08] rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/30 p-7 sm:p-9">
                   <AnimatePresence mode="wait">
                     {submitted ? (
-                      <motion.div key="success" className="text-center py-14 space-y-5"
+                      <motion.div key="success" className="text-center py-10 space-y-5"
                         initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0 }} transition={springBounce}>
                         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -735,13 +765,72 @@ export default function WaitlistPage() {
                         <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto text-sm leading-relaxed">
                           We&apos;ve saved your spot. We&apos;ll reach you with early access and launch news.
                         </p>
+
+                        {/* Referral card */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                          transition={{ ...springBounce, delay: 0.2 }}
+                          className="mx-auto max-w-sm rounded-2xl border p-5 text-left space-y-3"
+                          style={{ background: `${NAVY}08`, borderColor: `${NAVY}18` }}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ background: `${GREEN}1A` }}>
+                              <Gift className="w-4 h-4" style={{ color: GREEN }} />
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                                Move Up the Queue
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Each friend who joins bumps you higher
+                              </p>
+                            </div>
+                            {refCount > 0 && (
+                              <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
+                                style={{ background: `${GREEN}1A`, color: GREEN }}>
+                                {refCount} referred
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Link box */}
+                          <div className="flex items-center gap-2 rounded-xl border bg-white dark:bg-white/5 px-3 py-2"
+                            style={{ borderColor: `${NAVY}20` }}>
+                            <span className="flex-1 text-xs font-mono text-slate-600 dark:text-slate-300 truncate select-all">
+                              {myRefCode ? getReferralLink(myRefCode) : "generating…"}
+                            </span>
+                            <motion.button
+                              whileTap={{ scale: 0.92 }}
+                              onClick={() => {
+                                if (!myRefCode) return;
+                                navigator.clipboard.writeText(getReferralLink(myRefCode));
+                                setCopied(true);
+                                setTimeout(() => setCopied(false), 2000);
+                              }}
+                              className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition-colors"
+                              style={{ background: copied ? `${GREEN}1A` : `${NAVY}0F`, color: copied ? GREEN : NAVY }}>
+                              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                              {copied ? "Copied!" : "Copy"}
+                            </motion.button>
+                          </div>
+                        </motion.div>
+
                         <motion.button
                           whileTap={{ scale: 0.97 }}
-                          onClick={handleShare}
+                          onClick={() => {
+                            const link = myRefCode ? getReferralLink(myRefCode) : window.location.href;
+                            const text = `I just joined the BukieBrain waitlist — Nigeria's Chat-First Job Marketplace! Use my link to join and we both move up the queue: ${link}`;
+                            if (navigator.share) {
+                              navigator.share({ title: "BukieBrain Waitlist", text, url: link });
+                            } else {
+                              navigator.clipboard.writeText(text);
+                              showToast("Message copied to clipboard!");
+                            }
+                          }}
                           className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:brightness-110"
                           style={{ background: NAVY, fontFamily: "Montserrat, sans-serif" }}>
                           <Share2 className="w-4 h-4" />
-                          Share with a Friend
+                          Share Your Link
                         </motion.button>
                       </motion.div>
                     ) : (

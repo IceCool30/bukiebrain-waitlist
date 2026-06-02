@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { Download, Search, Users, Mail, MapPin, RefreshCw, LogOut } from "lucide-react";
+import { Download, Search, Users, Mail, MapPin, RefreshCw, LogOut, Gift } from "lucide-react";
 
 const NAVY  = "#0B1D3D";
 const GREEN = "#0D3B2E";
@@ -121,6 +121,22 @@ export default function AdminPage() {
       .map(([city, count]) => ({ city, count }));
   }, [entries]);
 
+  const topReferrers = useMemo(() => {
+    const counts: Record<string, { name: string; count: number }> = {};
+    for (const e of entries) {
+      if (e.referred_by) {
+        const referrer = entries.find(r => r.referral_code === e.referred_by);
+        const key = e.referred_by;
+        counts[key] = counts[key] ?? { name: referrer?.full_name ?? e.referred_by, count: 0 };
+        counts[key].count += 1;
+      }
+    }
+    return Object.entries(counts)
+      .map(([code, { name, count }]) => ({ code, name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [entries]);
+
   const signupsByDay = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const e of entries) {
@@ -134,13 +150,15 @@ export default function AdminPage() {
   }, [entries]);
 
   const exportCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Role", "Location", "Cities", "Trade/Specialty", "Date"];
+    const headers = ["Name", "Email", "Phone", "Role", "Location", "Cities", "Trade/Specialty", "Referral Code", "Referred By", "Date"];
     const rows = filtered.map(e => [
       e.full_name, e.email, e.phone,
       ROLE_LABELS[e.role] ?? e.role,
       e.location,
       (e.preferred_cities ?? []).join("; "),
       e.trade ?? e.specialty ?? e.help_needed ?? "",
+      e.referral_code ?? "",
+      e.referred_by ?? "",
       e.created_at?.slice(0, 10) ?? "",
     ].map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
     const csv = [headers.join(","), ...rows].join("\n");
@@ -231,13 +249,10 @@ export default function AdminPage() {
             label="Hero Emails" value={heroEmails.length} sub="Quick email captures" />
           <StatCard icon={<MapPin className="w-5 h-5" style={{ color: GREEN }} />}
             label="Cities" value={new Set(entries.map(e => e.location)).size} sub="Unique locations" />
-          <StatCard icon={<Users className="w-5 h-5" style={{ color: GREEN }} />}
-            label="This Week"
-            value={entries.filter(e => {
-              const d = new Date(e.created_at ?? "");
-              return (Date.now() - d.getTime()) < 7 * 86400000;
-            }).length}
-            sub="Signups in last 7 days" />
+          <StatCard icon={<Gift className="w-5 h-5" style={{ color: GREEN }} />}
+            label="Via Referral"
+            value={entries.filter(e => e.referred_by).length}
+            sub="Referred signups" />
         </div>
 
         {/* Charts */}
@@ -281,6 +296,31 @@ export default function AdminPage() {
             )}
           </div>
         </div>
+
+        {/* Top Referrers */}
+        {topReferrers.length > 0 && (
+          <div className="bg-white rounded-2xl border border-black/[0.06] p-6 shadow-sm">
+            <h2 className="font-black text-sm text-[#0B1D3D] mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
+              Top Referrers
+            </h2>
+            <div className="space-y-2">
+              {topReferrers.map(({ code, name, count }, i) => (
+                <div key={code} className="flex items-center gap-3">
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0"
+                    style={{ background: i === 0 ? `${GREEN}` : `${GREEN}18`, color: i === 0 ? "#fff" : GREEN }}>
+                    {i + 1}
+                  </span>
+                  <span className="flex-1 text-sm font-semibold text-[#0B1D3D] truncate">{name}</span>
+                  <span className="text-[10px] font-mono text-slate-400">{code}</span>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: `${GREEN}18`, color: GREEN }}>
+                    {count} {count === 1 ? "referral" : "referrals"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* City breakdown */}
         <div className="bg-white rounded-2xl border border-black/[0.06] p-6 shadow-sm">
@@ -344,6 +384,7 @@ export default function AdminPage() {
                     { label: "Phone", field: null },
                     { label: "Role", field: null },
                     { label: "Location", field: null },
+                    { label: "Refs", field: null },
                     { label: "Date", field: "created_at" as const },
                   ].map(({ label, field }) => (
                     <th key={label}
@@ -359,10 +400,14 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} className="text-center py-12 text-slate-400">Loading…</td></tr>
+                  <tr><td colSpan={7} className="text-center py-12 text-slate-400">Loading…</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-12 text-slate-400">No entries found</td></tr>
-                ) : filtered.map((e, i) => (
+                  <tr><td colSpan={7} className="text-center py-12 text-slate-400">No entries found</td></tr>
+                ) : filtered.map((e, i) => {
+                  const referralCount = e.referral_code
+                    ? entries.filter(x => x.referred_by === e.referral_code).length
+                    : 0;
+                  return (
                   <tr key={e.id ?? i} className="border-b border-black/[0.04] hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 font-semibold text-[#0B1D3D] whitespace-nowrap">{e.full_name}</td>
                     <td className="px-4 py-3 text-slate-500">{e.email}</td>
@@ -377,11 +422,22 @@ export default function AdminPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{e.location}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {referralCount > 0 ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                          style={{ background: `${GREEN}18`, color: GREEN }}>
+                          {referralCount}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-400 whitespace-nowrap">
                       {e.created_at ? new Date(e.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

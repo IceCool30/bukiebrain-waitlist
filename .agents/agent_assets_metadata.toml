@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "YA8RUzkVfR8jZIk2LSRBk"
+uri = "file://artifacts/bukiebrain/src/bukiebrain-logo-new.png"
+type = "image"
+title = "bukiebrain logo icon"

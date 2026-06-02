@@ -6,14 +6,14 @@ import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
   BadgeCheck, Globe, Smartphone, UserCircle, Briefcase, Lock,
   CheckCircle, GraduationCap, MapPin, Link as LinkIcon,
-  HelpCircle, Coins, ChevronDown, Sun, Moon, Star,
+  HelpCircle, Coins, ChevronDown, Sun, Moon, Star, Share2,
 } from "lucide-react";
 import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/supabase";
-import logoSrc from "@/bukiebrain-logo.png";
+import logoSrc from "@/bukiebrain-logo-new.png";
 import avatarMale1 from "@/avatar-male1.jpg";
 import avatarMale2 from "@/avatar-male2.jpg";
 import avatarFemale from "@/avatar-female.jpg";
@@ -171,7 +171,7 @@ function Reveal({ children, delay = 0, className = "", id }: {
   children: React.ReactNode; delay?: number; className?: string; id?: string;
 }) {
   const ref    = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.12 });
+  const inView = useInView(ref, { once: false, amount: 0.12 });
   return (
     <motion.div ref={ref} id={id} className={className}
       initial={{ opacity: 0, y: 36 }}
@@ -182,11 +182,21 @@ function Reveal({ children, delay = 0, className = "", id }: {
   );
 }
 
-function Logo({ height = "h-7" }: { height?: string }) {
+function useAmbientAnimation() {
+  const particles = Array.from({ length: 6 }, (_, i) => ({
+    id: i,
+    x: 20 + Math.random() * 60,
+    y: 10 + Math.random() * 80,
+    size: 2 + Math.random() * 4,
+    duration: 8 + Math.random() * 12,
+    delay: Math.random() * 5,
+  }));
+  return particles;
+}
+
+function Logo({ height = "h-8" }: { height?: string }) {
   return (
-    <span className="inline-flex items-center bg-white rounded-lg px-2 py-0.5">
-      <img src={logoSrc} alt="BukieBrain" className={`${height} w-auto object-contain`} />
-    </span>
+    <img src={logoSrc} alt="BukieBrain" className={`${height} w-auto object-contain`} />
   );
 }
 
@@ -259,6 +269,7 @@ export default function WaitlistPage() {
   const [submittedRole,   setSubmittedRole]   = useState<RoleValue>("local_worker");
   const [overlayOpen,     setOverlayOpen]     = useState(false);
   const [toastVisible,    setToastVisible]    = useState(false);
+  const [toastMsg,        setToastMsg]        = useState("Successfully joined the waitlist!");
   const [openFaq,         setOpenFaq]         = useState<number | null>(null);
   const [heroEmail,       setHeroEmail]       = useState("");
   const [heroError,       setHeroError]       = useState(false);
@@ -312,7 +323,11 @@ export default function WaitlistPage() {
   }, [overlayOpen]);
 
   const scrollTo  = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  const showToast = () => { setToastVisible(true); setTimeout(() => setToastVisible(false), 4000); };
+  const showToast = (msg?: string) => {
+    if (msg) setToastMsg(msg);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 4000);
+  };
 
   const submitHeroEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -394,10 +409,13 @@ export default function WaitlistPage() {
             BukieBrain is powered by Bukie Digital Solutions
           </span>
           <div className="flex items-center gap-3">
-            <a href="#join-section"
-              className="hidden sm:block text-sm font-medium text-[#0A142F]/70 dark:text-white/70 hover:text-[#0A142F] dark:hover:text-white transition-colors">
-              Join Waitlist
-            </a>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => scrollTo("join-section")}
+              className="hidden sm:block px-4 py-2 rounded-full font-black text-[11px] tracking-wide text-white transition-all hover:-translate-y-0.5 hover:brightness-105"
+              style={{ fontFamily: "Montserrat, sans-serif", background: GREEN, boxShadow: `0 6px 20px ${GREEN}40` }}>
+              JOIN NOW
+            </motion.button>
             <button onClick={toggleTheme}
               className="flex items-center gap-2 px-3 py-2 rounded-full text-[#0A142F] dark:text-white text-[11px] font-bold tracking-wide transition-colors hover:brightness-110"
               style={{ fontFamily: "Montserrat, sans-serif", background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
@@ -413,6 +431,16 @@ export default function WaitlistPage() {
         <section className="relative overflow-hidden text-[#0A142F] dark:text-white pt-[92px] pb-12 bg-[#F7F9FF] dark:bg-[#060f2a] transition-colors duration-300">
           <div className="absolute inset-0 pointer-events-none"
             style={{ background: "radial-gradient(ellipse 80% 60% at 50% 10%, rgba(0,211,127,0.13) 0%, transparent 70%)" }} />
+          {/* Ambient floating particles */}
+          {useAmbientAnimation().map(p => (
+            <motion.div key={p.id}
+              className="absolute rounded-full pointer-events-none"
+              style={{ width: p.size, height: p.size, background: GREEN, opacity: 0.12,
+                left: `${p.x}%`, top: `${p.y}%`, filter: "blur(1px)" }}
+              animate={{ y: [0, -30, 0], x: [0, 10, 0], opacity: [0.08, 0.2, 0.08] }}
+              transition={{ duration: p.duration, repeat: Infinity, delay: p.delay, ease: "easeInOut" }}
+            />
+          ))}
 
           <div className="relative max-w-3xl mx-auto px-5 md:px-10 flex flex-col items-center text-center gap-7">
 
@@ -512,14 +540,28 @@ export default function WaitlistPage() {
               </button>
             </div>
 
-            <div className="flex -space-x-3 items-center">
-              {[avatarMale1, avatarMale2, avatarFemale].map((src, i) => (
-                <img key={i} src={src} alt="member"
-                  className="w-9 h-9 rounded-full border-2 border-white object-cover" />
-              ))}
-              <div className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-black text-white"
-                style={{ background: "rgba(18,57,230,0.70)", fontFamily: "Montserrat, sans-serif" }}>
-                +99
+            <div className="flex items-center gap-3 -mt-2">
+              <div className="flex -space-x-3">
+                {[avatarMale1, avatarMale2, avatarFemale].map((src, i) => (
+                  <img key={i} src={src} alt="member"
+                    className="w-9 h-9 rounded-full border-2 border-white object-cover" />
+                ))}
+                <div className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-black text-white"
+                  style={{ background: "rgba(18,57,230,0.70)", fontFamily: "Montserrat, sans-serif" }}>
+                  +99
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1">
+                  <span className="font-black text-[18px] leading-none"
+                    style={{ fontFamily: "Montserrat, sans-serif", color: "#0A142F" }}>
+                    4,300+
+                  </span>
+                  <span className="inline-block w-2 h-2 rounded-full bg-[#00D37F] animate-pulse" />
+                </div>
+                <span className="text-[10px] font-medium text-[#0A142F]/50 dark:text-white/50 tracking-wide">
+                  Nigerians already joined
+                </span>
               </div>
             </div>
             <p className="text-[11px] font-semibold text-[#0A142F]/50 dark:text-white/50 -mt-5">
@@ -532,6 +574,23 @@ export default function WaitlistPage() {
               className="px-8 py-4 rounded-[16px] font-black text-[15px] tracking-wide text-white transition-all hover:-translate-y-0.5 hover:brightness-105"
               style={greenBtn}>
               Claim My Early Access Spot →
+            </motion.button>
+
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => {
+                const text = "I'm joining BukieBrain — Nigeria's Chat-First Job Marketplace! Join the waitlist for early access: " + window.location.href;
+                if (navigator.share) {
+                  navigator.share({ title: "BukieBrain Waitlist", text, url: window.location.href });
+                } else {
+                  navigator.clipboard.writeText(text);
+                  showToast("Link copied to clipboard!");
+                }
+              }}
+              className="inline-flex items-center gap-2 text-[11px] font-bold tracking-wide text-[#0A142F]/60 dark:text-white/60 hover:text-[#0A142F] dark:hover:text-white transition-all"
+              style={{ fontFamily: "Montserrat, sans-serif" }}>
+              <Share2 className="w-3.5 h-3.5" />
+              Spread the Word
             </motion.button>
           </div>
         </section>
@@ -864,7 +923,7 @@ export default function WaitlistPage() {
                 Don&apos;t Miss Your<br />Founding Member Spot
               </h2>
               <p className="text-white/65 text-sm mb-8 max-w-md mx-auto">
-                Join hundreds of Nigerians already on the waitlist. Be first to access the platform that&apos;s changing how Nigeria works.
+                Join 4,300+ Nigerians already on the waitlist. Be first to access the platform that&apos;s changing how Nigeria works.
               </p>
               <motion.button
                 whileTap={{ scale: 0.97 }}
@@ -976,7 +1035,7 @@ export default function WaitlistPage() {
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[1000] font-bold text-sm px-7 py-3.5 rounded-full whitespace-nowrap text-white"
             style={{ background: GREEN, boxShadow: "0 10px 40px rgba(0,0,0,0.30)" }}>
-            ✅ Successfully joined the waitlist!
+            ✅ {toastMsg}
           </motion.div>
         )}
       </AnimatePresence>

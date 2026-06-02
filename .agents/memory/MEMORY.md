@@ -1,0 +1,2 @@
+- [BukieBrain logo wrapper](logo-wrapper.md) — JPG logo needs white bg-white container; dark bg otherwise hides it.
+- [BukieBrain source of truth](source-of-truth.md) — .migration-backup/WaitlistPage.tsx is the original live Vercel layout; always diff against it when restoring content.

@@ -305,6 +305,10 @@ export default function WaitlistPage() {
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [isSaving,       setIsSaving]       = useState(false);
   const [saveError,      setSaveError]      = useState<string | null>(null);
+  const [cookieConsent,  setCookieConsent]  = useState<"accepted" | "declined" | null>(() => {
+    const v = localStorage.getItem("bukiebrain-cookie-consent");
+    return (v === "accepted" || v === "declined") ? v : null;
+  });
 
   const toggleCity = (city: string) =>
     setSelectedCities(prev =>
@@ -422,6 +426,11 @@ export default function WaitlistPage() {
     background: GREEN,
     boxShadow:  `0 10px 30px ${GREEN}4D`,
     fontFamily: "Montserrat, sans-serif",
+  };
+
+  const acceptCookies = (choice: "accepted" | "declined") => {
+    localStorage.setItem("bukiebrain-cookie-consent", choice);
+    setCookieConsent(choice);
   };
 
   const handleShare = () => {
@@ -1185,6 +1194,48 @@ export default function WaitlistPage() {
             className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[1000] font-bold text-sm px-7 py-3.5 rounded-full whitespace-nowrap text-white"
             style={{ background: NAVY, boxShadow: "0 10px 40px rgba(0,0,0,0.30)" }}>
             &#10003; {toastMsg}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── COOKIE CONSENT ──────────────────────────────── */}
+      <AnimatePresence>
+        {cookieConsent === null && (
+          <motion.div
+            initial={{ y: 120, opacity: 0 }}
+            animate={{ y: 0,   opacity: 1 }}
+            exit={{ y: 120,    opacity: 0 }}
+            transition={{ type: "spring", stiffness: 320, damping: 32, delay: 1.2 }}
+            className="fixed bottom-0 inset-x-0 z-[999] px-4 pb-4 sm:px-6 sm:pb-6 pointer-events-none">
+            <div
+              className="max-w-2xl mx-auto rounded-[20px] p-5 sm:p-6 pointer-events-auto border border-black/[0.08] dark:border-white/[0.10]"
+              style={{ background: "rgba(255,255,255,0.97)", backdropFilter: "blur(16px)", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[13px] text-[#0B1D3D] mb-1"
+                    style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    We use cookies 🍪
+                  </p>
+                  <p className="text-[12px] text-slate-500 leading-relaxed">
+                    BukieBrain uses essential cookies to keep the site working and remember your preferences. We do not sell or share your data. By continuing, you agree to our use of cookies in line with Nigeria's NDPR.
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => acceptCookies("declined")}
+                    className="px-4 py-2 rounded-full text-[12px] font-semibold text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+                    style={{ fontFamily: "Montserrat, sans-serif" }}>
+                    Decline
+                  </button>
+                  <button
+                    onClick={() => acceptCookies("accepted")}
+                    className="px-5 py-2 rounded-full text-[12px] font-bold text-white transition-all hover:brightness-110"
+                    style={{ background: GREEN, fontFamily: "Montserrat, sans-serif", boxShadow: `0 4px 14px ${GREEN}4D` }}>
+                    Accept All
+                  </button>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

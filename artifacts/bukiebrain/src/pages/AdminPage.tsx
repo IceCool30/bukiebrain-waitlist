@@ -68,12 +68,25 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: wl }, { data: he }] = await Promise.all([
+    const [
+      { data: wl, error: wlErr },
+      { data: he, error: heErr },
+    ] = await Promise.all([
       supabase.from("waitlist").select("*").order("created_at", { ascending: false }),
       supabase.from("hero_emails").select("*").order("created_at", { ascending: false }),
     ]);
-    setEntries(wl ?? []);
-    setHeroEmails(he ?? []);
+    if (wlErr) {
+      console.error("Waitlist fetch error:", wlErr);
+      setEntries([]);
+    } else {
+      setEntries(wl ?? []);
+    }
+    if (heErr) {
+      console.error("Hero emails fetch error:", heErr);
+      setHeroEmails([]);
+    } else {
+      setHeroEmails(he ?? []);
+    }
     setLoading(false);
   };
 

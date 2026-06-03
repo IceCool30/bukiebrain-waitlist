@@ -422,7 +422,11 @@ export default function WaitlistPage() {
     setIsSaving(true);
     setSaveError(null);
     const code = generateCode();
-    const { error } = await supabase.from("waitlist").insert({
+
+    // Try insert with referral columns (graceful fallback if DB doesn't have them yet)
+    let error: unknown | null = null;
+    let result: { error: unknown | null };
+    result = await supabase.from("waitlist").insert({
       full_name:        v.fullName,
       phone:            v.phone,
       email:            v.email,
@@ -438,15 +442,35 @@ export default function WaitlistPage() {
       referral_code:    code,
       referred_by:      inboundRef || undefined,
     });
+    error = result.error;
+
+    // If columns don't exist yet, retry without them
+    if (error && typeof error === "object" && (error as Record<string, string>).code === "42703") {
+      result = await supabase.from("waitlist").insert({
+        full_name:        v.fullName,
+        phone:            v.phone,
+        email:            v.email,
+        location:         v.location,
+        role:             v.role,
+        preferred_cities: selectedCities,
+        trade:            v.trade    || undefined,
+        service_area:     v.serviceArea || undefined,
+        specialty:        v.specialty   || undefined,
+        portfolio:        v.portfolio   || undefined,
+        help_needed:      v.helpNeeded  || undefined,
+        budget:           v.budget      || undefined,
+      });
+      error = result.error;
+    }
+
     setIsSaving(false);
-    if (error) { setSaveError("Something went wrong. Please try again."); return; }
+    if (error) {
+      console.error("Waitlist insert error:", error);
+      setSaveError("Something went wrong. Please try again.");
+      return;
+    }
     setMyRefCode(code);
-    // Fetch how many people this code has already referred (will be 0 for new signup)
-    const { count } = await supabase
-      .from("waitlist")
-      .select("*", { count: "exact", head: true })
-      .eq("referred_by", code);
-    setRefCount(count ?? 0);
+    setRefCount(0);
     setSubmittedRole(v.role);
     setSubmitted(true);
     showToast();

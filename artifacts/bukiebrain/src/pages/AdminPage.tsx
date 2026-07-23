@@ -8,7 +8,7 @@ import { Download, Search, Users, Mail, MapPin, RefreshCw, LogOut, Gift } from "
 
 const NAVY  = "#0B1D3D";
 const GREEN = "#0D3B2E";
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "bukieadmin2027";
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "";
 
 const ROLE_LABELS: Record<string, string> = {
   local_worker:      "Local Worker",

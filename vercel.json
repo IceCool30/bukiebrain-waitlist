@@ -1,4 +1,5 @@
 {
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "BASE_PATH=/ PORT=3000 pnpm --filter @workspace/bukiebrain run build",
   "outputDirectory": "artifacts/bukiebrain/dist/public",
   "rewrites": [

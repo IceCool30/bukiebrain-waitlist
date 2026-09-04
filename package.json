@@ -100,7 +100,9 @@
       "@expo/ngrok-bin>@expo/ngrok-bin-linux-ia32": "-",
       "@expo/ngrok-bin>@expo/ngrok-bin-sunos-x64": "-",
       "@expo/ngrok-bin>@expo/ngrok-bin-win32-ia32": "-",
-      "@expo/ngrok-bin>@expo/ngrok-bin-win32-x64": "-"
+      "@expo/ngrok-bin>@expo/ngrok-bin-win32-x64": "-",
+      "orval": "^8.21.0",
+      "fast-uri": "^4.1.4"
     }
   },
   "devDependencies": {
